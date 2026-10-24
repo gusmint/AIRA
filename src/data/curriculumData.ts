@@ -242,7 +242,8 @@ export const PERATURAN_AKADEMIK = {
   asesmenSumatif: {
     ragamSoal: 'Wajib menggunakan minimal 3 (tiga) jenis soal dari variasi: Pilihan Ganda, Pilihan Ganda Kompleks, Benar/Salah, Menjodohkan, Isian Singkat, dan Esai (Pasal 12).',
     jumlahSoalMinimal: 'Mata pelajaran Sains minimal 40 soal; Mata pelajaran Sosial Humaniora, Bahasa, dan Pendidikan Agama Islam minimal 50 soal (Pasal 13).',
-    bahasaInggris: 'Sekurang-kurangnya 40% dari jumlah soal menggunakan bahasa Inggris (Pasal 14), dikecualikan untuk mata pelajaran Bahasa Indonesia dan Bahasa Arab.'
+    bahasaInggris: 'Sekurang-kurangnya 40% dari jumlah soal menggunakan bahasa Inggris (Pasal 14), dikecualikan untuk mata pelajaran Bahasa Indonesia dan Bahasa Arab.',
+    aturanIzinKetat: 'Murid TIDAK DIBERIKAN IZIN meninggalkan Asesmen Sumatif (ASAS/ASAT) untuk urusan yang tidak penting. Pengecualian HANYA diberikan untuk keadaan darurat keluarga inti yang sah (keluarga inti sakit berat atau berita duka kematian keluarga inti). Izin di luar alasan utama tidak berhak ujian susulan (Pasal 9 Ayat 4–7).'
   },
 
   kenaikanKelas: {

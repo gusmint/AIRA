@@ -74,6 +74,22 @@ function generateLocalAiraAnswer(query: string, userRole: string = 'murid'): { t
     };
   }
 
+  if (lower.includes('ijin') || lower.includes('izin') || lower.includes('berita duka') || lower.includes('keluarga sakit') || lower.includes('susulan') || (lower.includes('tidak masuk') && (lower.includes('asas') || lower.includes('asat') || lower.includes('ujian')))) {
+    return {
+      text: `Berdasarkan **Peraturan Akademik MAN Insan Cendekia Bangka Tengah TA 2026/2027 (Pasal 9 Ayat 4–7)** mengenai pelaksanaan Asesmen Sumatif (ASAS & ASAT):
+
+1. **Kewajiban Mengikuti Asesmen**: Seluruh murid wajib mengikuti seluruh rangkaian Asesmen Sumatif sesuai jadwal resmi yang ditetapkan madrasah.
+2. **Aturan Ketat Perizinan**: Murid **TIDAK DIBERIKAN IZIN** untuk meninggalkan atau tidak mengikuti asesmen apabila alasan yang diajukan bersifat **tidak penting / tidak mendesak**.
+3. **Pengecualian Alasan Utama yang Sah**: Izin ketidakhadiran hanya dapat dipertimbangkan untuk alasan darurat utama keluarga inti yang dapat dipertanggungjawabkan, yaitu:
+   - **Keluarga inti sakit berat** (dibuktikan dengan surat/keterangan medis sah).
+   - **Berita duka dari keluarga inti** (kematian anggota keluarga inti).
+4. **Ketentuan Asesmen Susulan**:
+   - Ketidakhadiran lebih dari 1 hari karena kepentingan di luar alasan utama keluarga inti **tidak secara otomatis memberikan hak mengikuti asesmen susulan**.
+   - Pemberian izin dan hak asesmen susulan diputuskan secara ketat oleh Kepala Madrasah berdasarkan rekomendasi resmi dari panitia asesmen.`,
+      references: ['Peraturan Akademik Pasal 9 (Halaman 109-110)']
+    };
+  }
+
   if (lower.includes('soal') || lower.includes('sumatif') || lower.includes('bentuk soal') || lower.includes('jumlah soal')) {
     return {
       text: `Berdasarkan **Peraturan Akademik Pasal 12 dan Pasal 13**:

@@ -67,6 +67,11 @@ RINGKASAN DATA RESMI DOKUMEN KURIKULUM MAN IC BANGKA TENGAH 2026/2027:
   * Mata pelajaran Sains: sekurang-kurangnya 40 soal.
   * Mata pelajaran Sosial Humaniora, Bahasa, dan Pendidikan Agama: sekurang-kurangnya 50 soal.
 - Ketentuan Bahasa Soal (Pasal 14): Sekurang-kurangnya 40% dari jumlah soal menggunakan bahasa Inggris (dikecualikan untuk Bahasa Indonesia dan Bahasa Arab).
+- Ketentuan Izin Ketidakhadiran Asesmen Sumatif (ASAS & ASAT) (Pasal 9):
+  * Murid wajib mengikuti seluruh rangkaian Asesmen Sumatif (ASAS maupun ASAT) sesuai jadwal resmi yang telah ditetapkan.
+  * ATURAN KETAT PERIZINAN: Murid TIDAK AKAN DIBERIKAN IZIN meninggalkan Asesmen Sumatif untuk pengajuan izin yang sifatnya tidak penting/tidak mendesak.
+  * Pengecualian HANYA diberikan untuk keadaan darurat keluarga inti yang sah dan dapat dipertanggungjawabkan, yaitu: (a) Anggota keluarga inti sakit keras, atau (b) Berita duka dari keluarga inti (kematian anggota keluarga inti).
+  * Pengajuan izin di luar alasan darurat keluarga inti tidak diberikan izin dan TIDAK berhak mengikuti asesmen susulan. Hak asesmen susulan ditetapkan secara terbatas oleh Kepala Madrasah berdasarkan rekomendasi panitia asesmen.
 - Remedial & Pengayaan (Pasal 16-18): Remedial bagi yang belum mencapai kriteria ketuntasan (pembelajaran ulang metode berbeda, bimbingan, penugasan terstruktur, asesmen ulang). Pengayaan bagi yang tuntas/melampaui.
 - Kriteria Kenaikan Kelas (Pasal 20): Dinyatakan TIDAK NAIK KELAS apabila:
   a) Tidak mencapai ketuntasan belajar pada 3 (tiga) mata pelajaran atau lebih; ATAU

@@ -281,6 +281,46 @@ export const AcademicRulesTab: React.FC<AcademicRulesTabProps> = ({ onAskAira })
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Pasal 9: Aturan Ketat Izin Ketidakhadiran Asesmen Sumatif (ASAS / ASAT) */}
+        <div className="bg-rose-50/80 p-5 rounded-2xl border-2 border-rose-200 shadow-xs space-y-3 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-rose-600 text-white">
+              Pasal 9 Ayat 4–7
+            </span>
+            <span className="text-xs text-rose-800 font-semibold flex items-center gap-1">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Aturan Ketat Perizinan Ujian (ASAS & ASAT)
+            </span>
+          </div>
+          <h4 className="font-bold text-slate-900 text-sm sm:text-base">
+            Larangan Izin Non-Mendesak & Ketentuan Pengecualian Darurat Keluarga Inti
+          </h4>
+          <p className="text-xs text-slate-700 leading-relaxed">
+            Murid <strong>TIDAK DIBERIKAN IZIN</strong> meninggalkan asesmen sumatif apabila alasan yang diajukan bersifat <em>tidak penting atau tidak mendesak</em>. 
+            Izin ketidakhadiran hanya dapat dipertimbangkan untuk alasan darurat utama yang sah dan dapat dipertanggungjawabkan, yaitu:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="bg-white p-3 rounded-xl border border-rose-200">
+              <strong className="text-rose-900 block mb-1">1. Anggota Keluarga Inti Sakit Berat</strong>
+              <span className="text-slate-600">Wajib disertai bukti surat keterangan medis sah dari pihak rumah sakit/dokter.</span>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-rose-200">
+              <strong className="text-rose-900 block mb-1">2. Berita Duka dari Keluarga Inti</strong>
+              <span className="text-slate-600">Kematian anggota keluarga inti (orang tua kandung atau saudara kandung).</span>
+            </div>
+          </div>
+          <p className="text-[11px] text-rose-900/90 italic pt-1">
+            *Catatan: Ketidakhadiran karena urusan di luar alasan darurat utama tersebut <strong>tidak memberikan hak mengikuti asesmen susulan</strong>. Penetapan izin susulan diputuskan secara ketat oleh Kepala Madrasah atas rekomendasi panitia asesmen.
+          </p>
+          <button
+            onClick={() => onAskAira('Bagaimana aturan perizinan ketidakhadiran saat ASAS atau ASAT menurut Pasal 9?')}
+            className="text-xs font-semibold text-rose-800 hover:text-rose-950 flex items-center gap-1 cursor-pointer pt-1"
+          >
+            <span>Tanya AIRA mengenai Ketentuan Izin Asesmen Sumatif</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Pasal Peminatan & Penelitian */}
