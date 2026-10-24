@@ -1,0 +1,6 @@
+{
+  "name": "AIRA - Kurikulum MAN IC Bangka Tengah",
+  "description": "Asisten Virtual Cerdas Resmi Kurikulum MAN Insan Cendekia Bangka Tengah untuk Murid, Guru, dan Orang Tua.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
