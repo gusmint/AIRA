@@ -1,57 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
-  Sparkles, 
   RotateCcw, 
   Copy, 
   Check, 
   Volume2, 
   VolumeX, 
   FileText, 
-  AlertCircle,
-  HelpCircle,
-  GraduationCap,
-  BookOpen,
+  Sparkles,
   ArrowRight
 } from 'lucide-react';
-import { ChatMessage, UserRole } from '../types/curriculum';
-import { QUICK_QUESTIONS, MADRASAH_PROFILE } from '../data/curriculumData';
+import { ChatMessage } from '../types/curriculum';
 import { FormattedMarkdown } from '../utils/textFormatter';
 
-interface ChatTabProps {
-  userRole: UserRole;
-  onOpenPdf: () => void;
-  onNavigateToTab: (tabId: string) => void;
-}
-
-export const ChatTab: React.FC<ChatTabProps> = ({
-  userRole,
-  onOpenPdf,
-  onNavigateToTab,
-}) => {
+export const ChatTab: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: 'welcome-1',
       sender: 'aira',
       text: `Assalamu'alaikum Warahmatullahi Wabarakatuh. 
 
-Saya **AIRA (Academic & Curriculum Assistant)**, asisten virtual cerdas resmi untuk Kurikulum MAN Insan Cendekia Bangka Tengah Tahun Ajaran 2026/2027.
+Selamat datang di **AIRA** (*Academic & Curriculum Assistant*) MAN Insan Cendekia Bangka Tengah. 
 
-Saya siap membantu Anda memahami:
-- **Jadwal Resmi ASAS Ganjil 2026 (23 Nov – 02 Des 2026)**: Rincian sesi jam, tanggal, dan mata pelajaran per jenjang Kelas X, XI, dan XII (termasuk M1-M4 dan Prediction TOEFL).
-- **Struktur Kurikulum & Jam Belajar**: Fase E (Kelas X), Fase F (Kelas XI & XII), mata pelajaran pilihan, dan sistem blok waktu terpisah.
-- **Peraturan Akademik & Penilaian**: Syarat kehadiran minimal 75%, kaidah 40% soal berbahasa Inggris, variasi bentuk soal asesmen, kriteria kenaikan kelas, dan syarat kelulusan.
-- **Program Unggulan**: Karya Tulis Ilmiah (KTI) & Sidang KTI, Studi Kolaboratif, Homestay, Pembelajaran Mendalam (*Deep Learning*), serta Kurikulum Berbasis Cinta (*Panca Cinta*).
-- **Hasil TKA & Rapor Pendidikan 2025**: Capaian 14 mata pelajaran Tes Kompetensi Akademik dan pemetaan mutu satuan pendidikan.
-
-Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari ini?`,
+Ada yang bisa saya bantu atau ingin Anda tanyakan seputar kurikulum, jadwal akademik, atau kegiatan asesmen?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      references: ['Dokumen Resmi Kurikulum & Jadwal ASAS 2026/2027 (SK 16 Nov 2026)'],
       suggestedFollowUps: [
-        'Bagaimana rincian jadwal lengkap ASAS Ganjil 2026 untuk Kelas X, XI, dan XII?',
-        'Kapan jadwal ujian Prediction TOEFL dan SKI?',
+        'Bagaimana jadwal lengkap ASAS Ganjil 2026?',
         'Berapa syarat kehadiran minimal untuk ikut ujian ASAS?',
-        'Kapan jadwal ujian Fisika, Kimia, dan Biologi untuk kelas X?'
+        'Bagaimana aturan izin tidak masuk saat asesmen sumatif?',
+        'Apa saja syarat kelulusan dan program KTI di MAN IC?'
       ]
     }
   ]);
@@ -89,7 +66,7 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: query,
-          role: userRole,
+          role: 'umum',
           history: messages.map((m) => ({ sender: m.sender, text: m.text }))
         }),
       });
@@ -105,7 +82,7 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
         sender: 'aira',
         text: data.reply || 'Maaf, terjadi kesalahan pemrosesan.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        references: data.references || ['Dokumen Kurikulum MAN IC Bangka Tengah TA 2026/2027']
+        references: data.references || []
       };
 
       setMessages((prev) => [...prev, airaMsg]);
@@ -114,9 +91,8 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
       const errorMsg: ChatMessage = {
         id: `aira-err-${Date.now()}`,
         sender: 'aira',
-        text: `Maaf, terjadi kendala saat menghubungi server AIRA. Silakan coba sesaat lagi, atau Anda dapat membaca langsung di **Dokumen PDF Resmi** kurikulum madrasah.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        references: ['Dokumen Resmi Kurikulum MAN IC Bangka Tengah']
+        text: `Maaf, terjadi kendala koneksi dengan server AIRA. Silakan coba sesaat lagi atau tanyakan kembali.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -132,9 +108,7 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
   };
 
   const handleToggleSpeak = (id: string, text: string) => {
-    if (!('speechSynthesis' in window)) {
-      return;
-    }
+    if (!('speechSynthesis' in window)) return;
 
     if (isSpeaking === id) {
       window.speechSynthesis.cancel();
@@ -143,7 +117,6 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
     }
 
     window.speechSynthesis.cancel();
-    // Clean markdown formatting before speaking
     const cleanText = text
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
@@ -170,43 +143,56 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
       {
         id: `welcome-${Date.now()}`,
         sender: 'aira',
-        text: `Percakapan telah diperbarui. Silakan ajukan pertanyaan baru seputar Kurikulum, Jadwal ASAS (23 Nov - 2 Des 2026), Kalender Pendidikan, atau Peraturan Akademik MAN Insan Cendekia Bangka Tengah.`,
+        text: `Assalamu'alaikum Warahmatullahi Wabarakatuh. 
+
+Selamat datang di **AIRA** (*Academic & Curriculum Assistant*) MAN Insan Cendekia Bangka Tengah. 
+
+Ada yang bisa saya bantu atau ingin Anda tanyakan?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        references: ['Dokumen Resmi Kurikulum & Jadwal ASAS 2026/2027']
+        suggestedFollowUps: [
+          'Bagaimana jadwal lengkap ASAS Ganjil 2026?',
+          'Berapa syarat kehadiran minimal untuk ikut ujian ASAS?',
+          'Bagaimana aturan izin tidak masuk saat asesmen sumatif?',
+          'Apa saja syarat kelulusan dan program KTI di MAN IC?'
+        ]
       }
     ]);
   };
 
-  const suggestedQuestions = QUICK_QUESTIONS[userRole] || QUICK_QUESTIONS.murid;
+  const quickPills = [
+    'Jadwal ASAS Ganjil 2026',
+    'Syarat Kehadiran Minimal 75%',
+    'Aturan Izin Saat Asesmen',
+    'Syarat Kelulusan & Program KTI',
+    'Ketentuan 40% Bahasa Inggris Soal'
+  ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)] min-h-[550px] bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-      {/* Assistant Status Sub-header */}
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+      {/* Assistant Status Sub-header: cukup "AIRA aktif" */}
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between text-xs text-slate-600">
         <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 relative">
+          <span className="flex h-2.5 w-2.5 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <span className="font-medium text-slate-700">
-            AIRA aktif • Terhubung ke Dokumen Kurikulum 2026/2027
+          <span className="font-semibold text-slate-800">
+            AIRA aktif
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleResetChat}
-            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-200/70 transition cursor-pointer"
-            title="Bersihkan riwayat percakapan"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Bersihkan Chat</span>
-          </button>
-        </div>
+        <button
+          onClick={handleResetChat}
+          className="flex items-center gap-1 text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-200/70 transition cursor-pointer"
+          title="Mulai percakapan baru"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Bersihkan Chat</span>
+        </button>
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-gradient-to-b from-slate-50/50 via-white to-slate-50/30">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-slate-50/40 via-white to-slate-50/20">
         {messages.map((msg) => {
           const isAira = msg.sender === 'aira';
           return (
@@ -217,20 +203,22 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
               }`}
             >
               {/* Avatar */}
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs font-bold text-xs ${
-                  isAira
-                    ? 'bg-gradient-to-br from-emerald-600 to-teal-800 text-white border border-emerald-400/40'
-                    : 'bg-slate-800 text-slate-100'
-                }`}
-              >
-                {isAira ? 'AIRA' : <GraduationCap className="w-4 h-4" />}
-              </div>
+              {isAira ? (
+                <img
+                  src="/assets/aistudio/pasfoto_AIRA_17fe1069.jpg"
+                  alt="AIRA"
+                  className="w-9 h-9 rounded-full object-cover object-top shrink-0 border border-emerald-500 shadow-xs"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs text-xs font-semibold">
+                  Anda
+                </div>
+              )}
 
               {/* Message Content Bubble */}
               <div className="space-y-1.5 max-w-[85%] sm:max-w-[88%]">
                 <div
-                  className={`p-4 rounded-2xl shadow-xs text-slate-800 ${
+                  className={`p-3.5 sm:p-4 rounded-2xl shadow-xs text-slate-800 ${
                     isAira
                       ? 'bg-white border border-slate-200/90 rounded-tl-sm'
                       : 'bg-emerald-700 text-white rounded-tr-sm'
@@ -290,7 +278,7 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
 
                 {/* Suggested follow-up queries if provided */}
                 {isAira && msg.suggestedFollowUps && (
-                  <div className="pt-2 flex flex-wrap gap-1.5">
+                  <div className="pt-1.5 flex flex-wrap gap-1.5">
                     {msg.suggestedFollowUps.map((fu, idx) => (
                       <button
                         key={idx}
@@ -311,15 +299,17 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
         {/* Loading Bubble */}
         {isLoading && (
           <div className="flex gap-3 max-w-3xl mr-auto">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white flex items-center justify-center shrink-0 shadow-xs text-xs font-bold border border-emerald-400/40">
-              AIRA
-            </div>
-            <div className="p-4 rounded-2xl bg-white border border-slate-200/90 rounded-tl-sm shadow-xs flex items-center gap-2">
+            <img
+              src="/assets/aistudio/pasfoto_AIRA_17fe1069.jpg"
+              alt="AIRA"
+              className="w-9 h-9 rounded-full object-cover object-top shrink-0 border border-emerald-500 shadow-xs"
+            />
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 rounded-tl-sm shadow-xs flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce"></span>
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce [animation-delay:0.2s]"></span>
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce [animation-delay:0.4s]"></span>
               <span className="text-xs text-slate-500 font-medium ml-1">
-                AIRA sedang memeriksa dokumen resmi Kurikulum MAN IC...
+                AIRA sedang mencari informasi...
               </span>
             </div>
           </div>
@@ -328,24 +318,22 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Quick Questions Area */}
-      <div className="bg-slate-50/90 border-t border-slate-200 px-4 py-2.5 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-slate-500 flex items-center gap-1 shrink-0">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            Topik Rekomendasi ({userRole.toUpperCase()}):
+      {/* Quick Suggestions Chips Area */}
+      <div className="bg-slate-50/90 border-t border-slate-200 px-4 py-2 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 mr-1 shrink-0">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            Topik:
           </span>
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            {suggestedQuestions.map((q, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSendMessage(q)}
-                className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 hover:border-emerald-300 text-xs transition cursor-pointer shadow-2xs"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+          {quickPills.map((pill, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleSendMessage(pill)}
+              className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 hover:border-emerald-300 text-xs transition cursor-pointer shadow-2xs"
+            >
+              {pill}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -363,7 +351,7 @@ Ada yang ingin Anda tanyakan mengenai jadwal ASAS atau kurikulum madrasah hari i
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Tanyakan jadwal, beban JP, KTI, TKA, atau peraturan asesmen kurikulum..."
+            placeholder="Tuliskan pertanyaan Anda untuk AIRA di sini..."
             className="w-full pl-4 pr-10 py-3 bg-slate-50 focus:bg-white border border-slate-300 focus:border-emerald-500 rounded-xl text-sm outline-none transition text-slate-900 placeholder:text-slate-400"
             disabled={isLoading}
           />
