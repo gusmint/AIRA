@@ -1,6 +1,6 @@
 {
-  "name": "AIRA - Kurikulum MAN IC Bangka Tengah",
-  "description": "Asisten Virtual Cerdas Resmi Kurikulum MAN Insan Cendekia Bangka Tengah untuk Murid, Guru, dan Orang Tua.",
+  "name": "Nexian - AI Assistant MAN IC Bangka Tengah",
+  "description": "Asisten virtual pintar resmi MAN Insan Cendekia Bangka Tengah untuk layanan kurikulum, SOP akademik, SNMB, dan seluruh kebutuhan sistem madrasah.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

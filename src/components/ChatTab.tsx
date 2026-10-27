@@ -1,293 +1,201 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Send, 
-  RotateCcw, 
-  Copy, 
-  Check, 
-  Volume2, 
-  VolumeX, 
-  FileText, 
-  Sparkles,
-  ArrowRight
-} from 'lucide-react';
-import { ChatMessage } from '../types/curriculum';
-import { FormattedMarkdown } from '../utils/textFormatter';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-export const ChatTab: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: 'welcome-1',
-      sender: 'aira',
-      text: `Assalamu'alaikum Warahmatullahi Wabarakatuh. 
+import { useState, useRef, useEffect } from 'react';
+import { Send, Sparkles, BookOpen, Clock, AlertCircle } from 'lucide-react';
 
-Selamat datang di **AIRA** (*Academic & Curriculum Assistant*) MAN Insan Cendekia Bangka Tengah. 
+interface ChatMessage {
+  id: string;
+  sender: 'nexian' | 'user';
+  text: string;
+  timestamp: string;
+  references?: string[];
+  source?: string;
+}
 
-Ada yang bisa saya bantu atau ingin Anda tanyakan seputar kurikulum, jadwal akademik, atau kegiatan asesmen?`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      suggestedFollowUps: [
-        'Bagaimana jadwal lengkap ASAS Ganjil 2026?',
-        'Berapa syarat kehadiran minimal untuk ikut ujian ASAS?',
-        'Bagaimana aturan izin tidak masuk saat asesmen sumatif?',
-        'Apa saja syarat kelulusan dan program KTI di MAN IC?'
-      ]
-    }
-  ]);
+const INITIAL_MESSAGE: ChatMessage = {
+  id: 'welcome-nexian',
+  sender: 'nexian',
+  text: `Salam, selamat datang di MAN Insan Cendekia Bangka Tengah. Saya **NEXIAN**, asisten cerdas yang siap membantu dan menjawab pertanyaan Anda seputar kurikulum, pendaftaran murid baru (SNMB), SOP madrasah, dan sistem lainnya. Ada yang ingin Anda tanyakan?`,
+  timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+  references: ['Basis Data Resmi MAN Insan Cendekia Bangka Tengah'],
+};
 
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState<string | null>(null);
+const SUGGESTIONS = [
+  'Info Pendaftaran Murid Baru (SNMB)',
+  'Bagaimana alur & SOP KTI di SIMANIS?',
+  'Aturan izin saat ASAS/ASAT jika ada urusan?',
+  'Bagaimana SOP Remedial & Pengayaan (KKTP)?',
+  'Kapan jadwal Asesmen Sumatif (ASAS) Ganjil?',
+];
 
+export default function ChatTab() {
+  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    scrollToBottom();
+  }, [messages, loading]);
 
   const handleSendMessage = async (textToSend?: string) => {
-    const query = (textToSend || input).trim();
-    if (!query || isLoading) return;
+    const text = (textToSend || inputMessage).trim();
+    if (!text || loading) return;
 
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: Date.now().toString(),
       sender: 'user',
-      text: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      text,
+      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    setIsLoading(true);
+    setInputMessage('');
+    setLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const historyPayload = messages.map((m) => ({
+        sender: m.sender,
+        text: m.text,
+      }));
+
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: query,
-          role: 'umum',
-          history: messages.map((m) => ({ sender: m.sender, text: m.text }))
+          message: text,
+          history: historyPayload,
+          role: 'pengunjung',
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
       }
 
-      const data = await response.json();
-
-      const airaMsg: ChatMessage = {
-        id: `aira-${Date.now()}`,
-        sender: 'aira',
-        text: data.reply || 'Maaf, terjadi kesalahan pemrosesan.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        references: data.references || []
+      const data = await res.json();
+      const nexianMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: 'nexian',
+        text: data.reply || 'Maaf, terjadi kendala saat merespons pertanyaan Anda.',
+        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        references: data.references,
+        source: data.source,
       };
 
-      setMessages((prev) => [...prev, airaMsg]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMsg: ChatMessage = {
-        id: `aira-err-${Date.now()}`,
-        sender: 'aira',
-        text: `Maaf, terjadi kendala koneksi dengan server AIRA. Silakan coba sesaat lagi atau tanyakan kembali.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      setMessages((prev) => [...prev, nexianMsg]);
+    } catch {
+      const fallbackMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: 'nexian',
+        text: `Maaf, koneksi sementara terputus. Silakan coba kembali sesaat lagi atau tanyakan langsung ke bagian layanan madrasah.`,
+        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        references: ['Pusat Bantuan Sistem MAN IC Bangka Tengah'],
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => [...prev, fallbackMsg]);
     } finally {
-      setIsLoading(false);
-      inputRef.current?.focus();
+      setLoading(false);
     }
   };
 
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleToggleSpeak = (id: string, text: string) => {
-    if (!('speechSynthesis' in window)) return;
-
-    if (isSpeaking === id) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(null);
-      return;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
-
-    window.speechSynthesis.cancel();
-    const cleanText = text
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/#/g, '')
-      .replace(/`/g, '')
-      .replace(/\[cite:.*?\]/g, '');
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'id-ID';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    utterance.onend = () => setIsSpeaking(null);
-    utterance.onerror = () => setIsSpeaking(null);
-
-    setIsSpeaking(id);
-    window.speechSynthesis.speak(utterance);
   };
-
-  const handleResetChat = () => {
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(null);
-    setMessages([
-      {
-        id: `welcome-${Date.now()}`,
-        sender: 'aira',
-        text: `Assalamu'alaikum Warahmatullahi Wabarakatuh. 
-
-Selamat datang di **AIRA** (*Academic & Curriculum Assistant*) MAN Insan Cendekia Bangka Tengah. 
-
-Ada yang bisa saya bantu atau ingin Anda tanyakan?`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggestedFollowUps: [
-          'Bagaimana jadwal lengkap ASAS Ganjil 2026?',
-          'Berapa syarat kehadiran minimal untuk ikut ujian ASAS?',
-          'Bagaimana aturan izin tidak masuk saat asesmen sumatif?',
-          'Apa saja syarat kelulusan dan program KTI di MAN IC?'
-        ]
-      }
-    ]);
-  };
-
-  const quickPills = [
-    'Jadwal ASAS Ganjil 2026',
-    'Syarat Kehadiran Minimal 75%',
-    'Aturan Izin Saat Asesmen',
-    'Syarat Kelulusan & Program KTI',
-    'Ketentuan 40% Bahasa Inggris Soal'
-  ];
 
   return (
-    <div className="flex flex-col flex-1 h-full min-h-0 bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
-      {/* Assistant Status Sub-header: cukup "AIRA aktif" */}
-      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between text-xs text-slate-600">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-slate-50/50">
+      {/* Chat Sub-header */}
+      <div className="shrink-0 bg-white/95 px-4 py-2 border-b border-slate-200/80 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-2.5 w-2.5 relative">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <span className="font-semibold text-slate-800">
-            AIRA aktif
-          </span>
+          <span className="text-xs font-semibold text-slate-700">Nexian aktif</span>
         </div>
-
-        <button
-          onClick={handleResetChat}
-          className="flex items-center gap-1 text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-200/70 transition cursor-pointer"
-          title="Mulai percakapan baru"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Bersihkan Chat</span>
-        </button>
+        <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>Pelayan Pintar Sistem Madrasah</span>
+        </div>
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-slate-50/40 via-white to-slate-50/20">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-3 space-y-3.5 min-h-0">
         {messages.map((msg) => {
-          const isAira = msg.sender === 'aira';
+          const isNexian = msg.sender === 'nexian';
           return (
             <div
               key={msg.id}
-              className={`flex gap-3 max-w-3xl ${
-                isAira ? 'mr-auto' : 'ml-auto flex-row-reverse'
-              }`}
+              className={`flex items-start gap-2.5 ${isNexian ? 'justify-start' : 'justify-end'}`}
             >
-              {/* Avatar */}
-              {isAira ? (
-                <img
-                  src="/assets/aistudio/pasfoto_AIRA_17fe1069.jpg"
-                  alt="AIRA"
-                  className="w-9 h-9 rounded-full object-cover object-top shrink-0 border border-emerald-500 shadow-xs"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs text-xs font-semibold">
-                  Anda
+              {isNexian && (
+                <div className="shrink-0 mt-0.5">
+                  <img
+                    src="/assets/aistudio/pasfoto_AIRA_17fe1069.jpg"
+                    alt="Nexian"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-1 ring-emerald-500/30 shadow-2xs"
+                  />
                 </div>
               )}
 
-              {/* Message Content Bubble */}
-              <div className="space-y-1.5 max-w-[85%] sm:max-w-[88%]">
+              <div
+                className={`max-w-[88%] sm:max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed shadow-2xs ${
+                  isNexian
+                    ? 'bg-white border border-slate-200 text-slate-800'
+                    : 'bg-emerald-600 text-white rounded-tr-xs'
+                }`}
+              >
+                {/* Sender badge & timestamp */}
                 <div
-                  className={`p-3.5 sm:p-4 rounded-2xl shadow-xs text-slate-800 ${
-                    isAira
-                      ? 'bg-white border border-slate-200/90 rounded-tl-sm'
-                      : 'bg-emerald-700 text-white rounded-tr-sm'
+                  className={`flex items-center justify-between gap-3 text-[10px] mb-1 font-medium ${
+                    isNexian ? 'text-slate-400' : 'text-emerald-100'
                   }`}
                 >
-                  {isAira ? (
-                    <FormattedMarkdown content={msg.text} />
-                  ) : (
-                    <p className="text-sm md:text-[15px] whitespace-pre-wrap leading-relaxed">
-                      {msg.text}
-                    </p>
-                  )}
+                  <span className="font-semibold">{isNexian ? 'NEXIAN' : 'Anda'}</span>
+                  <span>{msg.timestamp}</span>
                 </div>
 
-                {/* Footer with References & Actions for AIRA */}
-                {isAira && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-slate-500">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {msg.references && msg.references.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-medium">
-                          <FileText className="w-3 h-3 text-emerald-600" />
-                          {msg.references[0]}
-                        </span>
-                      )}
-                      <span className="text-[10px] text-slate-400">{msg.timestamp}</span>
-                    </div>
+                {/* Message body formatted */}
+                <div className="space-y-1.5 whitespace-pre-line break-words">
+                  {msg.text.split('\n').map((line, idx) => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return <div key={idx} className="h-1" />;
 
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleSpeak(msg.id, msg.text)}
-                        className={`p-1 rounded hover:bg-slate-200/70 transition cursor-pointer ${
-                          isSpeaking === msg.id ? 'text-emerald-700 bg-emerald-100' : 'text-slate-400 hover:text-slate-700'
-                        }`}
-                        title={isSpeaking === msg.id ? 'Hentikan suara' : 'Dengarkan suara AIRA'}
-                      >
-                        {isSpeaking === msg.id ? (
-                          <VolumeX className="w-3.5 h-3.5" />
-                        ) : (
-                          <Volume2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                    // Render bold styling
+                    const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-                      <button
-                        onClick={() => handleCopy(msg.id, msg.text)}
-                        className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition cursor-pointer"
-                        title="Salin jawaban"
-                      >
-                        {copiedId === msg.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Suggested follow-up queries if provided */}
-                {isAira && msg.suggestedFollowUps && (
-                  <div className="pt-1.5 flex flex-wrap gap-1.5">
-                    {msg.suggestedFollowUps.map((fu, idx) => (
-                      <button
+                    return (
+                      <p
                         key={idx}
-                        onClick={() => handleSendMessage(fu)}
-                        className="text-xs text-left px-2.5 py-1.5 rounded-lg bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/60 transition cursor-pointer flex items-center gap-1"
+                        dangerouslySetInnerHTML={{ __html: formatted }}
+                        className={line.startsWith('- ') || line.match(/^\d+\./) ? 'pl-2 text-inherit' : 'text-inherit'}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Official Reference tag if provided */}
+                {isNexian && msg.references && msg.references.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
+                    <BookOpen className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span className="font-medium text-slate-600">Rujukan Resmi:</span>
+                    {msg.references.map((ref, rIdx) => (
+                      <span
+                        key={rIdx}
+                        className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200/60"
                       >
-                        <span>{fu}</span>
-                        <ArrowRight className="w-3 h-3 shrink-0 text-emerald-600" />
-                      </button>
+                        {ref}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -296,21 +204,20 @@ Ada yang bisa saya bantu atau ingin Anda tanyakan?`,
           );
         })}
 
-        {/* Loading Bubble */}
-        {isLoading && (
-          <div className="flex gap-3 max-w-3xl mr-auto">
+        {loading && (
+          <div className="flex items-start gap-2.5">
             <img
               src="/assets/aistudio/pasfoto_AIRA_17fe1069.jpg"
-              alt="AIRA"
-              className="w-9 h-9 rounded-full object-cover object-top shrink-0 border border-emerald-500 shadow-xs"
+              alt="Nexian"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-1 ring-emerald-500/30 shadow-2xs mt-0.5"
             />
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 rounded-tl-sm shadow-xs flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce"></span>
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce [animation-delay:0.2s]"></span>
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce [animation-delay:0.4s]"></span>
-              <span className="text-xs text-slate-500 font-medium ml-1">
-                AIRA sedang mencari informasi...
+            <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-2xs flex items-center gap-2 text-xs text-slate-500">
+              <span className="flex space-x-1">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></span>
               </span>
+              <span>Nexian sedang memeriksa dokumen resmi madrasah...</span>
             </div>
           </div>
         )}
@@ -318,67 +225,49 @@ Ada yang bisa saya bantu atau ingin Anda tanyakan?`,
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Suggestions Chips Area */}
-      <div className="bg-slate-50/90 border-t border-slate-200 px-4 py-2 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1.5 whitespace-nowrap">
-          <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 mr-1 shrink-0">
-            <Sparkles className="w-3 h-3 text-amber-500" />
-            Topik:
+      {/* Quick Prompts */}
+      <div className="shrink-0 bg-white/70 border-t border-slate-200/70 px-3 sm:px-4 py-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <span className="text-[10px] text-slate-400 font-medium shrink-0 flex items-center gap-1">
+            <Sparkles className="w-2.5 h-2.5 text-amber-500" /> Tanya cepat:
           </span>
-          {quickPills.map((pill, idx) => (
+          {SUGGESTIONS.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => handleSendMessage(pill)}
-              className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 hover:border-emerald-300 text-xs transition cursor-pointer shadow-2xs"
+              type="button"
+              onClick={() => handleSendMessage(item)}
+              disabled={loading}
+              className="shrink-0 text-[11px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {pill}
+              {item}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Input Form Bar */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSendMessage();
-        }}
-        className="p-3 bg-white border-t border-slate-200 flex items-center gap-2"
-      >
-        <div className="relative flex-1">
+      {/* Input Area */}
+      <div className="shrink-0 bg-white p-2.5 sm:p-3 border-t border-slate-200/80">
+        <div className="flex items-center gap-2 max-w-4xl mx-auto">
           <input
-            ref={inputRef}
             type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Tuliskan pertanyaan Anda untuk AIRA di sini..."
-            className="w-full pl-4 pr-10 py-3 bg-slate-50 focus:bg-white border border-slate-300 focus:border-emerald-500 rounded-xl text-sm outline-none transition text-slate-900 placeholder:text-slate-400"
-            disabled={isLoading}
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            placeholder="Tanyakan SNPDB, SOP KTI, Remedial, jadwal asesmen, atau sistem madrasah..."
+            className="flex-1 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs sm:text-sm text-slate-800 placeholder-slate-400 border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2.5 outline-hidden transition-all"
           />
-          {input && (
-            <button
-              type="button"
-              onClick={() => setInput('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
-            >
-              ✕
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleSendMessage()}
+            disabled={!inputMessage.trim() || loading}
+            aria-label="Kirim Pesan"
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-medium p-2.5 rounded-xl shadow-xs transition-colors shrink-0 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+          >
+            <Send className="w-4 h-4" />
+          </button>
         </div>
-
-        <button
-          type="submit"
-          disabled={!input.trim() || isLoading}
-          className={`px-4 py-3 rounded-xl font-medium text-sm flex items-center gap-1.5 transition cursor-pointer ${
-            input.trim() && !isLoading
-              ? 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs'
-              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <span>Kirim</span>
-          <Send className="w-4 h-4" />
-        </button>
-      </form>
+      </div>
     </div>
   );
-};
+}

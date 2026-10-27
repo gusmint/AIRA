@@ -1,10 +1,15 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
-import { AIRA_SYSTEM_INSTRUCTION } from './server/curriculumKnowledge.ts';
+import { NEXIAN_SYSTEM_INSTRUCTION } from './server/curriculumKnowledge.ts';
 
 dotenv.config();
 
@@ -27,283 +32,254 @@ const ai = apiKey
     })
   : null;
 
-// Smart offline/fallback answer generator if API Key is not set or network fails
-function generateLocalAiraAnswer(query: string, userRole: string = 'murid'): { text: string; references: string[] } {
+// Comprehensive offline/fallback answer generator for Nexian
+function generateLocalNexianAnswer(query: string, userRole: string = 'pengunjung'): { text: string; references: string[] } {
   const lower = query.toLowerCase();
 
+  // 1. SNPDB / Pendaftaran Murid Baru
+  if (
+    lower.includes('snpdb') ||
+    lower.includes('daftar') ||
+    lower.includes('pendaftaran') ||
+    lower.includes('murid baru') ||
+    lower.includes('siswa baru') ||
+    lower.includes('syarat masuk') ||
+    lower.includes('seleksi')
+  ) {
+    return {
+      text: `Berikut informasi resmi **Pendaftaran Murid Baru (SNMB)** MAN Insan Cendekia Bangka Tengah:
+
+1. **Sistem Terpusat Kemenag**:
+   - Pendaftaran diselenggarakan secara daring (online) melalui portal resmi Kementerian Agama RI di **https://snpdb-madrasah.kemenag.go.id**.
+2. **Jalur Penerimaan**:
+   - **Jalur Tes CBT (Computer Based Test)**: Meliputi Tes Potensi Akademik (TPA), Literasi Skolastik, Matematika, Sains, Bahasa Inggris, dan Pemahaman Keislaman.
+   - **Jalur Prestasi**: Diperuntukkan bagi peraih medali juara 1, 2, atau 3 pada kompetisi resmi tingkat nasional/internasional seperti OSN, KSM, OPSI, MYRES, atau MTQ/Tahfiz minimal 10-15 Juz.
+   - **Jalur Afirmasi & Kemitraan**: Kuota afirmasi khusus bagi siswa berprestasi dari keluarga kurang mampu atau wilayah afirmasi 3T.
+3. **Persyaratan Dokumen**:
+   - Memiliki NISN aktif yang terdata di EMIS/Dapodik.
+   - Nilai rapor semester 1 sampai dengan 5 tingkat SMP/MTs sederajat.
+   - Pasfoto resmi terbaru dengan latar belakang merah/biru.
+   - Surat rekomendasi dari Kepala Sekolah/Madrasah asal.
+4. **Fasilitas & Beasiswa**:
+   - Seluruh peserta didik yang lolos seleksi wajib tinggal di asrama madrasah (*full boarding school*).
+   - Biaya pendidikan dan sarana asrama mendapatkan beasiswa subsidi dari Kementerian Agama RI.`,
+      references: ['Petunjuk Teknis SNPDB Kemenag RI', 'Informasi Resmi PMB MAN IC Bangka Tengah']
+    };
+  }
+
+  // 2. Perizinan Khusus Asesmen (ASAS & ASAT)
+  if (
+    (lower.includes('izin') || lower.includes('ijin') || lower.includes('dispensasi') || lower.includes('sakit')) &&
+    (lower.includes('asas') || lower.includes('asat') || lower.includes('asesmen') || lower.includes('ujian'))
+  ) {
+    return {
+      text: `Berdasarkan **Peraturan Akademik & Tata Tertib Asesmen MAN Insan Cendekia Bangka Tengah**:
+
+1. **Ketentuan Larangan Izin**:
+   - Murid **TIDAK DIBERIKAN IZIN** untuk tidak mengikuti atau meninggalkan Asesmen Sumatif (baik ASAS maupun ASAT) jika alasan yang diajukan sifatnya tidak mendesak/tidak penting.
+2. **Pengecualian Izin Darurat**:
+   - Izin dan dispensasi hanya dapat dipertimbangkan dalam kondisi darurat luar biasa keluarga inti, yaitu:
+     - Anggota keluarga inti (ayah, ibu, saudara kandung) **sakit keras / opname**.
+     - Terjadi **berita duka cita** (meninggal dunia) dari keluarga inti.
+     - Murid yang bersangkutan mengalami sakit berat yang dibuktikan dengan surat opname resmi rumah sakit/dokter madrasah.
+3. **Asesmen Susulan**:
+   - Murid yang berhalangan hadir karena alasan darurat sah di atas berhak mengikuti **Asesmen Sumatif Susulan** setelah mendapat persetujuan tertulis dari Wakil Kepala Madrasah Bidang Kurikulum.`,
+      references: ['Peraturan Akademik Bab Asesmen', 'SOP Asesmen Pembelajaran MAN IC Bateng']
+    };
+  }
+
+  // 3. SOP Karya Tulis Ilmiah (KTI) & SIMANIS
+  if (lower.includes('kti') || lower.includes('karya tulis') || lower.includes('sidang') || lower.includes('bimbingan')) {
+    return {
+      text: `Berdasarkan **SOP Karya Tulis Ilmiah (KTI) & SIMANIS MAN IC Bangka Tengah**:
+
+1. **Sistem Terpadu SIMANIS**:
+   - Seluruh pengajuan judul, matriks penelitian, hingga catatan bimbingan dikelola melalui portal **SIMANIS** (*simanis.icbateng.sch.id*).
+2. **Ketentuan Bimbingan**:
+   - Murid dibimbing oleh Guru Pembimbing KTI resmi berdasarkan Surat Keputusan (SK) Kepala Madrasah.
+   - Wajib memenuhi **minimal 8 (delapan) kali logbook bimbingan digital** dalam rentang waktu 2 sampai 3 bulan sebelum mendaftar sidang.
+3. **Sidang KTI**:
+   - Berlangsung selama **60 menit** di Ruang Sidang KTI (Laboratorium seluas 112 m²).
+   - Diuji oleh **3 Dewan Penguji**: Ketua Penguji, Penguji Ahli/Utama, dan Guru Pembimbing sebagai Sekretaris Sidang.
+4. **Revisi & Legalitas PTSP**:
+   - Naskah revisi pasca-sidang diunggah ke SIMANIS untuk mendapat *ACC* dewan penguji.
+   - Pengesahan tanda tangan dan legalitas lembar naskah diproses melalui Pelayanan Terpadu Satu Pintu (PTSP) Madrasah.
+   - Lulus Sidang KTI merupakan salah satu **syarat mutlak kelulusan** dari MAN IC Bangka Tengah.`,
+      references: ['SOP Bimbingan KTI SIMANIS', 'Peraturan Akademik Pasal 24', 'SK Tim Pembimbing KTI']
+    };
+  }
+
+  // 4. SOP Remedial dan Pengayaan
+  if (lower.includes('remedial') || lower.includes('pengayaan') || lower.includes('kktp')) {
+    return {
+      text: `Berdasarkan **SOP Remedial dan Pengayaan MAN IC Bangka Tengah**:
+
+1. **Analisis Ketuntasan Cepat**:
+   - Guru mata pelajaran wajib melakukan analisis hasil asesmen maksimal **2 hari kerja** setelah asesmen berakhir berdasarkan Kriteria Ketercapaian Tujuan Pembelajaran (KKTP).
+2. **Jalur A - Program Remedial (Nilai < KKTP)**:
+   - Wajib mengikuti pembelajaran ulang (*re-teaching*) terfokus pada indikator kompetensi yang belum tuntas.
+   - Dapat memanfaatkan bimbingan khusus dari guru pengampu atau metode tutor sebaya (*peer tutoring*).
+   - Dilanjutkan dengan tes remedial paralel. Nilai capaian akhir remedial maksimal setara dengan nilai batas KKTP.
+3. **Jalur B - Program Pengayaan (Nilai ≥ KKTP)**:
+   - Diberikan pendalaman materi bernalar kritis (*High Order Thinking Skills* / HOTS).
+   - Mengerjakan mini riset mandiri, analisis jurnal sains, atau penyelesaian soal-soal kompetisi tingkat lanjut (OSN/KSM).`,
+      references: ['SOP Remedial & Pengayaan Akademik', 'Bab V Asesmen Pembelajaran']
+    };
+  }
+
+  // 5. SOP Guru Piket & Penanganan Kelas Kosong
+  if (lower.includes('guru piket') || lower.includes('piket') || lower.includes('kelas kosong')) {
+    return {
+      text: `Berdasarkan **SOP Guru Piket MAN Insan Cendekia Bangka Tengah**:
+
+1. **Kehadiran Awal**:
+   - Guru piket hadir di madrasah sekurang-kurangnya **15 menit sebelum bel masuk** berbunyi (pukul 06.45 WIB).
+2. **Budaya 5S**:
+   - Melaksanakan penyambutan kedatangan murid dan bapak/ibu guru di gerbang madrasah dengan budaya **5S** (Senyum, Salam, Sapa, Sopan, dan Santun).
+3. **Penanganan Kelas Kosong**:
+   - Jika guru mata pelajaran berhalangan hadir, guru piket dalam tempo **15–30 menit** wajib mengoordinasikan guru pengganti atau mendistribusikan penugasan mandiri terstruktur agar jam belajar tetap produktif.
+4. **Layanan Perizinan & Jurnal**:
+   - Memverifikasi izin murid yang sakit menuju ruang UKS/Klinik atau izin keluar mendesak melalui sistem digital **SIMANIS**.
+   - Mencatat seluruh dinamika harian pada buku jurnal piket madrasah.`,
+      references: ['SOP Guru Piket Terpadu SIMANIS', 'Tata Tertib Kedisiplinan Madrasah']
+    };
+  }
+
+  // 6. SOP Input Nilai Rapor via RDM (Rapor Digital Madrasah)
+  if (lower.includes('rdm') || lower.includes('rapor') || lower.includes('input nilai')) {
+    return {
+      text: `Berdasarkan **SOP Penginputan Nilai Rapor via RDM MAN IC Bangka Tengah**:
+
+1. **Aplikasi Resmi**:
+   - Seluruh proses pengolahan nilai rapor terpusat pada platform **Rapor Digital Madrasah (RDM)** di tautan *rdm.icbateng.sch.id*.
+2. **Tugas Guru Mata Pelajaran**:
+   - Menginput bobot penilaian, nilai formatif, nilai tugas/portofolio, dan nilai asesmen sumatif (ASAS/ASAT) beserta deskripsi capaian kompetensi.
+3. **Tugas Wali Kelas**:
+   - Memeriksa kelengkapan nilai seluruh mapel, merekapitulasi presensi kehadiran (wajib memenuhi syarat minimal 75%), nilai kegiatan ekstrakurikuler, dan catatan pembinaan kepribadian.
+4. **Verifikasi & Lock Data**:
+   - Penguncian data nilai (*Lock Data*) dilakukan oleh Administrator Akademik bersama Kepala Madrasah sebelum proses pencetakan rapor fisik dan penyerahan kepada orang tua/wali murid.`,
+      references: ['SOP Input Nilai Rapor RDM', 'Petunjuk Teknis RDM Ditjen Pendis Kemenag']
+    };
+  }
+
+  // 7. SOP Proses Pembelajaran KBC (Kurikulum Berbasis Cinta)
+  if (lower.includes('pembelajaran') || lower.includes('kbc') || lower.includes('panca cinta') || lower.includes('proses belajar')) {
+    return {
+      text: `Berdasarkan **SOP Proses Pembelajaran & Kurikulum Berbasis Cinta (KBC)**:
+
+1. **Sintaks Pembelajaran Terstruktur**:
+   - **10 Menit Pertama**: Sambutan hangat, pembacaan doa bersama, tadarus/Asmaul Husna, dan *emotional check-in* kondisi murid.
+   - **5 Menit**: Asesmen diagnostik singkat serta apersepsi kontekstual yang mengaitkan materi dengan kehidupan nyata.
+   - **50–60 Menit**: Pembelajaran inti aktif, berdiferensiasi, eksplorasi sains di laboratorium, dan kolaborasi kelompok.
+   - **10 Menit**: Pemberian umpan balik formatif yang apresiatif (*compassionate feedback*).
+   - **10 Menit**: Refleksi kebermaknaan ilmu, penguatan nilai Panca Cinta, serta doa syukur penutup.
+   - **5 Menit**: Pengarsipan administrasi dan jurnal guru di portal SIMANIS.
+2. **Pilar Nilai Panca Cinta**:
+   - Cinta Allah & Rasul, Cinta Ilmu, Cinta Lingkungan Hidup, Cinta Sesama & Bangsa, serta Cinta Keunggulan & Mutu.`,
+      references: ['SOP Proses Pembelajaran KBC', 'Bab IV Pengorganisasian Pembelajaran']
+    };
+  }
+
+  // 8. Jadwal ASAS Ganjil 2026/2027
+  if (lower.includes('jadwal') || lower.includes('kapan asas') || lower.includes('tanggal')) {
+    return {
+      text: `Berdasarkan **Jadwal Asesmen Sumatif Akhir Semester (ASAS) Ganjil TA 2026/2027**:
+
+1. **Rentang Pelaksanaan**:
+   - ASAS Ganjil diselenggarakan mulai hari **Senin, 23 November 2026** sampai dengan hari **Rabu, 2 Desember 2026**.
+2. **Karakteristik Asesmen**:
+   - Dilaksanakan secara terpadu di ruang kelas/laboratorium komputer madrasah.
+   - Mengintegrasikan minimal **40% soal berbahasa Inggris** pada rumpun sains dan mata pelajaran tertentu.
+3. **Peringatan Penting**:
+   - Setiap murid wajib menjaga kesehatan dan kehadiran (minimal 75%).
+   - Izin meninggalkan ASAS hanya diperkenankan untuk kondisi luar biasa keluarga inti (sakit keras/berita duka cita).`,
+      references: ['Dokumen Resmi Jadwal ASAS TA 2026/2027', 'Kalender Pendidikan SK No. 029/2026']
+    };
+  }
+
+  // 9. Syarat Kehadiran 75%
   if (lower.includes('kehadiran') || lower.includes('absen') || lower.includes('bolos') || lower.includes('75%')) {
     return {
-      text: `Berdasarkan **Peraturan Akademik MAN Insan Cendekia Bangka Tengah TA 2026/2027 (Pasal 4)**:
+      text: `Berdasarkan **Peraturan Akademik MAN IC Bangka Tengah (Pasal 4)**:
 
-1. **Persyaratan Minimal**: Setiap murid wajib memenuhi kehadiran sekurang-kurangnya **75% (tujuh puluh lima persen)** dari jumlah hari belajar efektif pada semester berjalan.
-2. **Konsekuensi**: Murid yang tidak memenuhi batas 75% **tidak berhak** mengikuti Asesmen Sumatif Akhir Semester (ASAS) maupun Asesmen Sumatif Akhir Tahun (ASAT).
-3. **Dispensasi**: Pengecualian hanya dapat diberikan melalui dispensasi khusus berdasarkan pertimbangan Kepala Madrasah setelah melalui forum rapat dewan guru.
-4. **Perhitungan Kehadiran**: Meliputi tatap muka di kelas, pembelajaran daring/blended learning resmi, serta kegiatan pembelajaran pengganti terverifikasi.`,
+1. **Batas Minimal**: Setiap murid wajib memiliki kehadiran sekurang-kurangnya **75% (tujuh puluh lima persen)** dari seluruh hari belajar efektif pada semester berjalan.
+2. **Konsekuensi Pelanggaran**: Murid yang tidak mencapai batas 75% dinyatakan **tidak berhak** mengikuti Asesmen Sumatif (ASAS maupun ASAT).
+3. **Dispensasi**: Pengecualian hanya dapat diterbitkan melalui dispensasi resmi Kepala Madrasah setelah melalui rapat dewan guru.`,
       references: ['Peraturan Akademik Pasal 4 (Halaman 107)', 'Bab V Asesmen Pembelajaran']
     };
   }
 
+  // 10. Syarat Kelulusan
   if (lower.includes('lulus') || lower.includes('kelulusan') || lower.includes('syarat lulus')) {
     return {
       text: `Berdasarkan **Peraturan Akademik MAN Insan Cendekia Bangka Tengah (Pasal 24 & 25)**, syarat kelulusan murid terdiri dari:
 
-1. **Penyelesaian Program Pembelajaran**: Telah menyelesaikan seluruh beban belajar dari Semester 1 sampai dengan Semester 6 sesuai struktur kurikulum.
-2. **Asesmen Madrasah**: Memenuhi standar ketuntasan pada Asesmen Madrasah (tertulis dan praktik).
-3. **Penyelesaian 4 Program Unggulan Wajib**:
-   - **Kegiatan Studi Kolaboratif**: Kunjungan ilmiah ke laboratorium perguruan tinggi/industri.
-   - **Kegiatan Homestay**: Pengabdian masyarakat langsung di pedesaan.
-   - **Karya Tulis Ilmiah (KTI)**: Penyusunan KTI dan **dinyatakan LULUS dalam Sidang Karya Tulis**.
-   - **Tahfiz Al-Qur'an**: Memenuhi standar minimal target hafalan Al-Qur'an yang ditetapkan madrasah.
-4. **Kelakuan & Sikap**: Memiliki integritas karakter bernilai minimal Baik sesuai pilar Panca Cinta.`,
-      references: ['Peraturan Akademik Pasal 24-25 (Halaman 118)', 'Bab II Kekhasan Madrasah (Halaman 11-13)']
+1. **Menuntaskan Kurikulum**: Menyelesaikan seluruh beban belajar dari Semester 1 s.d. Semester 6.
+2. **Asesmen Madrasah**: Memperoleh nilai kelulusan pada seluruh mata pelajaran yang diujikan dalam Asesmen Madrasah.
+3. **Menuntaskan 4 Program Unggulan Wajib**:
+   - **Studi Kolaboratif**: Kunjungan ilmiah kampus riset/industri.
+   - **Homestay**: Program pengabdian masyarakat di desa mitra.
+   - **Karya Tulis Ilmiah (KTI)**: Menyelesaikan penelitian dan dinyatakan **LULUS dalam Sidang KTI**.
+   - **Tahfiz Al-Qur'an**: Memenuhi target capaian hafalan Al-Qur'an madrasah.
+4. **Nilai Sikap**: Memiliki predikat sikap dan kepribadian minimal **Baik**.`,
+      references: ['Peraturan Akademik Pasal 24-25', 'Bab II Kekhasan Madrasah']
     };
   }
 
-  if (lower.includes('bahasa inggris') && (lower.includes('soal') || lower.includes('ujian') || lower.includes('40%') || lower.includes('asesmen'))) {
-    return {
-      text: `Berdasarkan **Peraturan Akademik Pasal 14 (Ketentuan Bahasa dalam Instrumen Asesmen)**:
-
-1. **Kaidah 40% Bahasa Inggris**: Sekurang-kurangnya **40% (empat puluh persen)** dari total butir soal asesmen sumatif wajib menggunakan pengantar **Bahasa Inggris**.
-2. **Pengecualian**: Ketentuan ini dikecualikan untuk mata pelajaran **Bahasa Indonesia** dan **Bahasa Arab**.
-3. **Tujuan Pedagogis**:
-   - Meningkatkan literasi akademik dan daya saing global murid MAN IC.
-   - Membiasakan pemahaman terminologi keilmuan saintek dan humaniora dalam bahasa internasional.
-   - Mendukung visi madrasah sebagai pusat keunggulan (*center of excellence*).
-4. **Kualitas Soal**: Pendidik diwajibkan memastikan keterbacaan (*readability*) dan ketepatan konsep agar soal tetap terukur dan adil.`,
-      references: ['Peraturan Akademik Pasal 14 (Halaman 112)', 'Bab III Visi, Misi & Tujuan (Halaman 20-22)']
-    };
-  }
-
-  if (lower.includes('ijin') || lower.includes('izin') || lower.includes('berita duka') || lower.includes('keluarga sakit') || lower.includes('susulan') || (lower.includes('tidak masuk') && (lower.includes('asas') || lower.includes('asat') || lower.includes('ujian')))) {
-    return {
-      text: `Berdasarkan **Peraturan Akademik MAN Insan Cendekia Bangka Tengah TA 2026/2027 (Pasal 9 Ayat 4–7)** mengenai pelaksanaan Asesmen Sumatif (ASAS & ASAT):
-
-1. **Kewajiban Mengikuti Asesmen**: Seluruh murid wajib mengikuti seluruh rangkaian Asesmen Sumatif sesuai jadwal resmi yang ditetapkan madrasah.
-2. **Aturan Ketat Perizinan**: Murid **TIDAK DIBERIKAN IZIN** untuk meninggalkan atau tidak mengikuti asesmen apabila alasan yang diajukan bersifat **tidak penting / tidak mendesak**.
-3. **Pengecualian Alasan Utama yang Sah**: Izin ketidakhadiran hanya dapat dipertimbangkan untuk alasan darurat utama keluarga inti yang dapat dipertanggungjawabkan, yaitu:
-   - **Keluarga inti sakit berat** (dibuktikan dengan surat/keterangan medis sah).
-   - **Berita duka dari keluarga inti** (kematian anggota keluarga inti).
-4. **Ketentuan Asesmen Susulan**:
-   - Ketidakhadiran lebih dari 1 hari karena kepentingan di luar alasan utama keluarga inti **tidak secara otomatis memberikan hak mengikuti asesmen susulan**.
-   - Pemberian izin dan hak asesmen susulan diputuskan secara ketat oleh Kepala Madrasah berdasarkan rekomendasi resmi dari panitia asesmen.`,
-      references: ['Peraturan Akademik Pasal 9 (Halaman 109-110)']
-    };
-  }
-
-  if (lower.includes('soal') || lower.includes('sumatif') || lower.includes('bentuk soal') || lower.includes('jumlah soal')) {
-    return {
-      text: `Berdasarkan **Peraturan Akademik Pasal 12 dan Pasal 13**:
-
-1. **Variasi Bentuk Soal (Pasal 12)**:
-   - Setiap instrumen asesmen sumatif wajib memuat **sekurang-kurangnya 3 (tiga) variasi jenis soal** dari pilihan berikut:
-     * Pilihan Ganda biasa
-     * Pilihan Ganda Kompleks
-     * Benar / Salah
-     * Menjodohkan
-     * Isian Singkat
-     * Esai / Uraian
-2. **Jumlah Minimal Soal (Pasal 13)**:
-   - **Rumpun Sains**: Sekurang-kurangnya **40 butir soal**.
-   - **Rumpun Sosial Humaniora, Bahasa, dan Pendidikan Agama Islam**: Sekurang-kurangnya **50 butir soal**.
-3. **Standar Soal**: Wajib memadukan soal tingkat penalaran tinggi (*Higher Order Thinking Skills / HOTS*).`,
-      references: ['Peraturan Akademik Pasal 12 & 13 (Halaman 111-112)']
-    };
-  }
-
-  if (lower.includes('naik kelas') || lower.includes('kenaikan kelas') || lower.includes('tinggal kelas')) {
-    return {
-      text: `Berdasarkan **Peraturan Akademik Pasal 20 (Kriteria Kenaikan Kelas)**:
-
-1. **Kriteria Kenaikan**: Murid dinyatakan naik kelas jika menyelesaikan evaluasi belajar dan memenuhi standar ketuntasan minimal madrasah.
-2. **Kriteria TIDAK NAIK KELAS**:
-   - **Ketuntasan Akademik**: Tidak mencapai ketuntasan belajar pada **3 (tiga) mata pelajaran atau lebih**; ATAU
-   - **Kehadiran**: Memiliki tingkat kehadiran **kurang dari 75%** dari jumlah hari belajar efektif pada semester ganjil dan genap.
-3. **Mekanisme Penetapan**: Keputusan kenaikan kelas ditetapkan secara musyawarah melalui Rapat Dewan Guru dan dituangkan dalam Surat Keputusan Kepala Madrasah.`,
-      references: ['Peraturan Akademik Pasal 20 (Halaman 116)']
-    };
-  }
-
-  if (lower.includes('jadwal asas') || lower.includes('jadwal ujian') || lower.includes('asesmen sumatif') || lower.includes('toefl') || (lower.includes('jadwal') && (lower.includes('november') || lower.includes('desember') || lower.includes('ganjil')))) {
-    return {
-      text: `Berdasarkan dokumen resmi **Jadwal Asesmen Sumatif Akhir Semester (ASAS) Ganjil TA 2026/2027** yang ditetapkan Kepala Madrasah (**Ahmad Sukri Ahkap, S.Pd., M.Sc.**) pada tanggal 16 November 2026:
-
-Pelaksanaan ujian berlangsung dari **Senin, 23 November 2026 s.d. Rabu, 02 Desember 2026**.
-
-**Pembagian Sesi Ujian Harian**:
-- Sesi 1: 07.30 – 09.30 WIB
-- Istirahat: 09.30 – 10.00 WIB
-- Sesi 2: 10.00 – 12.00 WIB
-- Istirahat / ISOMA: 12.00 – 13.00 WIB
-- Sesi 3: 13.00 – 14.30 WIB
-
-**Rincian Jadwal per Hari**:
-1. **Senin, 23 November 2026**:
-   - 07.30 - 09.30: Kelas X: **Geografi** | Kelas XI & XII: **M-1 (Mapel Pilihan 1)**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Pendidikan Pancasila**
-   - 13.00 - 14.30: Seluruh Kelas (X, XI, XII): **Sejarah**
-
-2. **Selasa, 24 November 2026**:
-   - 07.30 - 09.30: Kelas X: **Fisika** | Kelas XI & XII: **M-2 (Mapel Pilihan 2)**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Fiqih**
-   - 13.00 - 14.30: Kelas X: **Biologi** | Kelas XI & XII: *(Kosong)*
-
-3. **Rabu, 25 November 2026**:
-   - 07.30 - 09.30: Kelas X: **Kimia** | Kelas XI & XII: **M-3 (Mapel Pilihan 3)**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Bahasa Indonesia**
-   - 13.00 - 14.30: Seluruh Kelas (X, XI, XII): **Akidah Akhlak**
-
-4. **Kamis, 26 November 2026**:
-   - 07.30 - 09.30: Kelas X: **Ekonomi** | Kelas XI & XII: **M-4 (Mapel Pilihan 4)**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Bahasa Arab**
-   - 13.00 - 14.30: Kelas X: **Informatika** | Kelas XI & XII: *(Kosong)*
-
-5. **Jumat, 27 November 2026**:
-   - 07.30 - 09.30: Kelas X: **Penguatan Bahasa Inggris** | Kelas XI: **Penguatan Matematika** | Kelas XII: *(Kosong)*
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Pendidikan Jasmani, Olahraga dan Kesehatan (PJOK)**
-   - 13.00 - 14.30: Seluruh Kelas: *(Kosong)*
-
-6. **Senin, 30 November 2026**:
-   - 07.30 - 09.30: Seluruh Kelas (X, XI, XII): **Matematika**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Seni Budaya**
-   - 13.00 - 14.30: Kelas X: **Penguatan Ekonomi** | Kelas XI & XII: *(Kosong)*
-
-7. **Selasa, 01 Desember 2026**:
-   - 07.30 - 09.30: Seluruh Kelas (X, XI, XII): **Bahasa Inggris**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Alquran Hadits**
-   - 13.00 - 14.30: Kelas X: **Sosiologi** | Kelas XI & XII: *(Kosong)*
-
-8. **Rabu, 02 Desember 2026**:
-   - 07.30 - 09.30: Seluruh Kelas (X, XI, XII): **Sejarah Kebudayaan Islam (SKI)**
-   - 10.00 - 12.00: Seluruh Kelas (X, XI, XII): **Prediction TOEFL**
-   - 13.00 - 14.30: *(Pelaksanaan ASAS Ganjil Selesai)*`,
-      references: ['Dokumen Resmi Jadwal ASAS TA 2026/2027 (SK 16 Nov 2026)']
-    };
-  }
-
-  if (lower.includes('kalender') || lower.includes('jadwal') || lower.includes('rapor') || lower.includes('libur') || lower.includes('matsama') || lower.includes('asas')) {
-    return {
-      text: `Berdasarkan **Kalender Pendidikan MAN IC Bangka Tengah TA 2026/2027 (SK Kepala No. 029/2026 & KMA 4860/2026)**:
-
-**Semester Gasal**:
-- **13 Juli 2026**: Awal Masuk Tahun Ajaran 2026/2027
-- **13 – 18 Juli 2026**: Rentang MATSAMA (Masa Ta'aruf Siswa Madrasah)
-- **17 Agustus 2026**: Hari Kemerdekaan RI
-- **25 Agustus 2026**: Maulid Nabi Muhammad SAW
-- **23 November – 05 Desember 2026**: Rentang ASAS Gasal
-- **18 atau 19 Desember 2026**: Penyerahan Rapor Semester Gasal
-- **21 Desember 2026 – 02 Januari 2027**: Libur Semester Gasal
-
-**Semester Genap**:
-- **04 Januari 2027**: Awal Masuk Semester Genap
-- **06 – 13 Maret 2027**: Libur Seputar Hari Raya Idulfitri 1448 H (10-11 Maret)
-- **29 Maret – 15 Mei 2027**: Rentang Waktu Ujian Madrasah (UM) Kelas XII
-- **24 Mei – 05 Juni 2027**: Perkiraan ASAS Genap / ASAT
-- **18 atau 19 Juni 2027**: Penyerahan Rapor Semester Genap
-- **21 Juni – 10 Juli 2027**: Libur Akhir Tahun Ajaran`,
-      references: ['Kalender Pendidikan Madrasah TA 2026/2027 (Halaman 101-103, 144-147)']
-    };
-  }
-
-  if (lower.includes('tka') || lower.includes('kompetensi akademik') || lower.includes('tes kompetensi')) {
-    return {
-      text: `Berdasarkan **Laporan Hasil Tes Kompetensi Akademik (TKA) 2025** di dokumen Kurikulum (Halaman 16-19 & 25-27):
-
-1. **Prestasi Utama**: Seluruh 14 mata pelajaran yang diujikan (87 peserta) memiliki **nilai rata-rata madrasah yang jauh di atas rata-rata nasional**.
-2. **Capaian Tertinggi**:
-   - **Geografi (Pilihan)**: Rata-rata **86,91** (Nasional: 70,36) dengan nilai individu puncak **90,86**.
-   - **Bahasa Arab (Pilihan)**: Rata-rata **84,29** (Nasional: 64,97).
-   - **Bahasa Indonesia (Wajib)**: Rata-rata **71,73** (Nasional: 55,38), 80 murid meraih predikat **Istimewa**.
-3. **Catatan Refleksi & Intervensi**:
-   - Mata pelajaran **Matematika Wajib** (rata-rata 52,50) dan **Fisika** (rata-rata 47,95) memiliki sebaran rentang nilai lebar dan terdapat masing-masing 4 murid pada predikat Kurang.
-   - Madrasah mewajibkan pendampingan klinis berupa **Remedial Teaching Terstruktur** bagi murid yang memerlukan penguatan konsep sains-teknologi.`,
-      references: ['Bab II Karakteristik Bagian J (Halaman 16-19)', 'Tabel Rekapitulasi TKA (Halaman 25)']
-    };
-  }
-
-  if (lower.includes('rapor pendidikan') || lower.includes('kebinekaan') || lower.includes('keamanan')) {
-    return {
-      text: `Berdasarkan **Hasil Rapor Pendidikan 2025 Kemendikdasmen** untuk MAN IC Bangka Tengah (Halaman 14-16 & 131-136):
-
-1. **Predikat Mutu Keseluruhan**: Berkategori **"Baik"**.
-2. **Kekuatan Tertinggi (Capaian Terbaik)**:
-   - **Kondisi Keamanan Sekolah (Skor 77,00 - Naik)**: Lingkungan asrama terbukti aman, 100% bebas perundungan, tidak ada kekerasan fisik, dan nihil penyalahgunaan zat berbahaya (P4GN).
-3. **Poin Paling Perlu Ditingkatkan**:
-   - **Kondisi Kebinekaan Sekolah (Skor 71,00 - Tren Menurun)**: Meskipun masih berpredikat Baik, penurunan skor ini menjadi prioritas pembenahan. Madrasah merespons melalui penguatan moderasi beragama, proyek P5-PPRA, dan pembiasaan toleransi sosiokultural di asrama.
-4. **Indikator Lain**:
-   - Kemampuan Literasi: 100% murid berkategori Baik (skor 93,94).
-   - Kemampuan Numerasi: 97,73% murid berkategori Baik (skor 84,99).
-   - Kualitas Pembelajaran: Skor 67,00 (difokuskan pada penerapan *Deep Learning*).`,
-      references: ['Bab II Hasil Rapor Pendidikan (Halaman 14-16)', 'Infografis Rapor Pendidikan 2025 (Halaman 131)']
-    };
-  }
-
-  if (lower.includes('panca cinta') || lower.includes('kbc') || lower.includes('kurikulum berbasis cinta') || lower.includes('deep learning')) {
+  // 11. Struktur JP & Program Penguatan
+  if (lower.includes('struktur') || lower.includes('beban') || lower.includes('jam pelajaran') || lower.includes('jp') || lower.includes('penguatan')) {
     return {
       text: `Berdasarkan **Bab IV Pengorganisasian Pembelajaran MAN IC Bangka Tengah**:
 
-1. **Kurikulum Berbasis Cinta (KBC / Panca Cinta)**:
-   - **Cinta kepada Allah dan Rasul-Nya**: Fondasi ibadah amaliyah dan ketakwaan.
-   - **Cinta kepada Diri Sendiri dan Sesama**: Menumbuhkan penghargaan potensi diri, empati, dan gotong royong.
-   - **Cinta kepada Ilmu Pengetahuan**: Hasrat meneliti, membaca, dan bereksplorasi secara akademis.
-   - **Cinta kepada Kelestarian Lingkungan**: Kepedulian ekologis di kampus asrama yang asri dan bersih.
-   - **Cinta kepada Bangsa dan Negara**: Menjunjung tinggi persatuan Indonesia dan moderasi beragama.
-2. **Pembelajaran Mendalam (Deep Learning)**:
-   - Pendekatan belajar yang memuliakan murid melalui tiga prinsip: **Mindful** (berkesadaran), **Meaningful** (bermakna), dan **Joyful** (menggembirakan).
-   - Melibatkan harmonisasi olah pikir, olah hati, olah rasa, dan olah raga dengan 3 tahapan pengalaman belajar: Memahami, Mengaplikasikan, dan Merefleksi.`,
-      references: ['Bab IV Bagian A (Halaman 23-24)', 'Bab V Perencanaan Terintegrasi (Halaman 33-35)']
+1. **Fase E (Kelas X)**:
+   - Fondasi penguasaan sains dan kepesantrenan.
+   - Program Penguatan: **Ekonomi terintegrasi Cinta, Bangga, dan Paham (CBP) Rupiah** (216 JP/tahun, 24 JP/bulan).
+2. **Fase F (Kelas XI)**:
+   - Pemilihan mata pelajaran peminatan.
+   - Program Penguatan: **Bahasa Inggris** (216 JP/tahun, 24 JP/bulan) untuk TOEFL/IELTS dan wawasan internasional.
+3. **Fase F (Kelas XII)**:
+   - Fokus persiapan seleksi perguruan tinggi.
+   - Program Penguatan: **Matematika & Penalaran Sains** (192 JP/tahun, 24 JP/bulan) untuk SNBT/TKA.
+4. **Sistem Blok Waktu Terpisah**:
+   - Memastikan praktikum laboratorium dan riset KTI terlaksana secara mendalam tanpa terpotong jadwal sempit.`,
+      references: ['Bab IV Struktur Kurikulum & Beban Belajar']
     };
   }
 
-  if (lower.includes('kti') || lower.includes('karya tulis') || lower.includes('riset') || lower.includes('sidang')) {
+  // 12. Kontak dan Alamat
+  if (lower.includes('alamat') || lower.includes('lokasi') || lower.includes('kontak') || lower.includes('telepon')) {
     return {
-      text: `Berdasarkan **Dokumen Kurikulum MAN IC Bangka Tengah (Bab II & Peraturan Akademik)**:
+      text: `Berikut alamat dan informasi kontak resmi MAN Insan Cendekia Bangka Tengah:
 
-1. **Sifat Program**: Karya Tulis Ilmiah (KTI) adalah **program wajib** bagi seluruh murid dan menjadi **salah satu syarat mutlak kelulusan**.
-2. **Tujuan**:
-   - Menumbuhkan daya nalar kritis dan pemahaman metodologi riset ilmiah.
-   - Mengasah literasi sains dan keterampilan komunikasi verbal saat mempertahankan argumen.
-3. **Mekanisme & Tahapan**:
-   - Didampingi oleh Guru Pembimbing KTI yang ditetapkan resmi melalui Surat Keputusan Kepala Madrasah (SK No. 026/2026).
-   - Murid menyusun proposal, melaksanakan eksperimen/studi lapangan (di dalam atau luar madrasah dengan izin resmi), menyusun naskah laporan, dan menjalani **Sidang Karya Tulis Ilmiah** di Ruang Sidang KTI (Gedung Laboratorium).
-4. **Fasilitas Pendukung**: Madrasah menyediakan Ruang Sidang KTI seluas 112 m² serta laboratorium fisika, kimia, biologi, dan komputer yang representatif.`,
-      references: ['Bab II Kekhasan Riset & Teknologi (Halaman 11-12)', 'Peraturan Akademik Pasal 24 (Halaman 118)', 'Lampiran 11 SK Pembimbing KTI (Halaman 84-85)']
+- **Alamat**: Jl. Sungaiselan Km. 11, Desa Simpang Katis, Kecamatan Simpang Katis, Kabupaten Bangka Tengah, Kepulauan Bangka Belitung, Kode Pos 33674.
+- **Portal SNPDB**: https://snpdb-madrasah.kemenag.go.id
+- **Portal SIMANIS**: https://simanis.icbateng.sch.id
+- **Portal RDM**: https://rdm.icbateng.sch.id
+- **Website Resmi**: https://icbateng.sch.id`,
+      references: ['Profil Lembaga MAN Insan Cendekia Bangka Tengah']
     };
   }
 
-  if (lower.includes('penguatan') || lower.includes('ekonomi') || lower.includes('cbp rupiah') || lower.includes('blok waktu')) {
-    return {
-      text: `Berdasarkan **Bab IV Pengorganisasian Pembelajaran**:
-
-1. **Penataan Program Penguatan per Jenjang**:
-   - **Fase E (Kelas X)**: Penguatan difokuskan pada **Ekonomi** yang diintegrasikan dengan materi **Cinta, Bangga, dan Paham (CBP) Rupiah** (216 JP/tahun, 24 JP/bulan).
-   - **Fase F (Kelas XI)**: Penguatan difokuskan pada **Bahasa Inggris** (216 JP/tahun, 24 JP/bulan) guna mengokohkan kecakapan komunikasi global.
-   - **Fase F (Kelas XII)**: Penguatan difokuskan pada **Matematika** (192 JP/tahun, 24 JP/bulan) untuk persiapan seleksi SNBT dan tembus PTN favorit.
-2. **Sistem Blok Waktu Terpisah**:
-   - Waktu belajar diatur dalam blok waktu terangkum agar murid memiliki ruang utuh menyelesaikan eksperimen sains, proyek kokurikuler, dan KTI tanpa terfragmentasi jadwal yang sempit.`,
-      references: ['Bab IV Bagian A & B (Halaman 23-28)']
-    };
-  }
-
-  // Default response when query is outside or unconfirmed
+  // Default response for unlisted queries
   return {
-    text: `Terima kasih atas pertanyaan Anda kepada AIRA (Academic & Curriculum Assistant) MAN Insan Cendekia Bangka Tengah.
+    text: `Terima kasih telah berkonsultasi dengan **Nexian** (AI Assistant resmi MAN Insan Cendekia Bangka Tengah).
 
-Maaf, informasi spesifik tersebut belum tercantum dalam dokumen Kurikulum AIRA. Silakan konfirmasi ke Bagian Kurikulum/Keagamaan MAN IC Bangka Tengah.
+Maaf, informasi spesifik tersebut belum tercantum dalam basis data resmi Nexian. Silakan konfirmasi ke Bagian Kurikulum/Keagamaan/Humas MAN IC Bangka Tengah.
 
-Topik kurikulum resmi yang dapat Anda tanyakan meliputi:
-- **Struktur Kurikulum & Jam Pelajaran**: Beban JP Fase E (Kelas X), Fase F (Kelas XI & XII), program penguatan, dan sistem blok waktu terpisah.
-- **Kalender Akademik TA 2026/2027**: Jadwal MATSAMA, tanggal ASAS Gasal/Genap, pembagian rapor, dan rentang libur.
-- **Peraturan Akademik & Asesmen**: Syarat kehadiran minimal 75%, kaidah 40% soal Bahasa Inggris, ragam soal sumatif, kriteria kenaikan kelas, dan kriteria kelulusan.
-- **Program KTI & Riset**: Pelaksanaan Karya Tulis Ilmiah, bimbingan, dan sidang KTI.
-- **Data TKA & Rapor Pendidikan 2025**: Capaian 14 mata pelajaran TKA dan evaluasi indikator mutu asrama.`,
-    references: ['Dokumen Resmi Kurikulum MAN Insan Cendekia Bangka Tengah TA 2026/2027']
+Topik resmi yang dapat Anda tanyakan meliputi:
+- **Pendaftaran Murid Baru (SNPDB)**: Jalur seleksi CBT, jalur prestasi, afirmasi, jadwal, dan syarat masuk.
+- **SOP Madrasah**: SOP Bimbingan & Sidang KTI via SIMANIS, SOP Remedial & Pengayaan (KKTP), SOP Guru Piket, SOP Input Nilai Rapor (RDM), serta SOP Pembelajaran KBC.
+- **Peraturan Akademik & Asesmen**: Syarat kehadiran minimal 75%, ketentuan larangan izin saat ASAS/ASAT, kriteria kenaikan kelas, dan kriteria kelulusan.
+- **Jadwal & Kalender Akademik**: Jadwal ASAS Ganjil (23 November - 2 Desember 2026), MATSAMA, dan libur semester.
+- **Struktur Kurikulum & Jam Belajar**: Penguatan Ekonomi CBP Rupiah (Kelas X), Bahasa Inggris (Kelas XI), dan Matematika (Kelas XII).`,
+    references: ['Basis Data Resmi Kurikulum & SOP MAN IC Bangka Tengah']
   };
 }
 
-// API Route: Chat with AIRA
+// API Route: Chat with Nexian
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
-    const { message, history = [], role = 'murid' } = req.body;
+    const { message, history = [], role = 'pengunjung' } = req.body;
 
     if (!message || typeof message !== 'string') {
       res.status(400).json({ error: 'Pesan tidak boleh kosong.' });
@@ -311,14 +287,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     // Role contextual cue
-    const rolePromptContext = `[User Role: ${role} di MAN Insan Cendekia Bangka Tengah].`;
+    const rolePromptContext = `[User Role: ${role} di lingkungan MAN Insan Cendekia Bangka Tengah].`;
 
-    // Try Gemini API call with a 9-second timeout for snappy responses
+    // Try Gemini API call with a 25-second timeout for snappy, high-quality responses
     if (ai) {
       try {
         const contents = [
           ...history.slice(-8).map((h: { sender: string; text: string }) => ({
-            role: h.sender === 'aira' ? 'model' : 'user',
+            role: h.sender === 'nexian' || h.sender === 'aira' ? 'model' : 'user',
             parts: [{ text: h.text }],
           })),
           {
@@ -331,7 +307,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
           model: 'gemini-3.8-flash',
           contents,
           config: {
-            systemInstruction: AIRA_SYSTEM_INSTRUCTION,
+            systemInstruction: NEXIAN_SYSTEM_INSTRUCTION,
             thinkingConfig: {
               thinkingLevel: ThinkingLevel.LOW,
             },
@@ -341,36 +317,33 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         });
 
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Gemini API timeout')), 30000)
+          setTimeout(() => reject(new Error('Gemini API timeout')), 25000)
         );
 
         const response = await Promise.race([geminiPromise, timeoutPromise]);
-
         const replyText = response.text || '';
-        
+
         // Extract references if mentioned
         const references: string[] = [];
+        if (replyText.includes('SNPDB') || replyText.includes('pendaftaran')) references.push('Juknis SNPDB Kemenag RI');
+        if (replyText.includes('SIMANIS') || replyText.includes('KTI')) references.push('SOP Bimbingan KTI SIMANIS');
+        if (replyText.includes('Remedial') || replyText.includes('KKTP')) references.push('SOP Remedial & Pengayaan');
+        if (replyText.includes('Guru Piket') || replyText.includes('5S')) references.push('SOP Guru Piket Madrasah');
+        if (replyText.includes('RDM') || replyText.includes('Rapor')) references.push('SOP Input Nilai Rapor RDM');
         if (replyText.includes('Pasal 4') || replyText.includes('kehadiran')) references.push('Peraturan Akademik Pasal 4');
-        if (replyText.includes('Pasal 12') || replyText.includes('Pasal 13')) references.push('Peraturan Akademik Pasal 12 & 13');
-        if (replyText.includes('Pasal 14') || replyText.includes('Bahasa Inggris')) references.push('Peraturan Akademik Pasal 14');
-        if (replyText.includes('Pasal 20') || replyText.includes('Kenaikan')) references.push('Peraturan Akademik Pasal 20');
-        if (replyText.includes('Pasal 24') || replyText.includes('Kelulusan')) references.push('Peraturan Akademik Pasal 24 & 25');
-        if (replyText.includes('TKA') || replyText.includes('Kompetensi Akademik')) references.push('Laporan TKA 2025 (Hal. 16-19, 25)');
-        if (replyText.includes('Rapor Pendidikan')) references.push('Rapor Pendidikan 2025 (Hal. 14-16, 131)');
-        if (replyText.includes('Kalender') || replyText.includes('Juli 2026') || replyText.includes('2027')) references.push('Kalender Pendidikan SK 029/2026');
-        if (replyText.includes('Panca Cinta') || replyText.includes('KBC')) references.push('Kurikulum Berbasis Cinta Bab IV');
-        if (replyText.includes('KTI') || replyText.includes('Karya Tulis')) references.push('Bab II Kekhasan Madrasah & Lampiran 11');
+        if (replyText.includes('ASAS') || replyText.includes('23 November')) references.push('Jadwal Resmi ASAS TA 2026/2027');
+        if (replyText.includes('Kelulusan') || replyText.includes('Pasal 24')) references.push('Peraturan Akademik Pasal 24-25');
+        if (replyText.includes('Panca Cinta') || replyText.includes('KBC')) references.push('Kurikulum Berbasis Cinta (KBC)');
 
         res.json({
           reply: replyText,
-          references: references.length > 0 ? references : ['Dokumen Kurikulum MAN IC Bateng TA 2026/2027'],
+          references: references.length > 0 ? references : ['Basis Data Resmi MAN IC Bangka Tengah'],
           source: 'gemini-3.8-flash',
         });
         return;
       } catch (geminiError) {
-        console.warn('Gemini API call failed, falling back to local curriculum knowledge engine:', geminiError);
-        // Fallback to local verified knowledge engine
-        const fallback = generateLocalAiraAnswer(message, role);
+        console.warn('Gemini API call failed, falling back to local verified knowledge engine:', geminiError);
+        const fallback = generateLocalNexianAnswer(message, role);
         res.json({
           reply: fallback.text,
           references: fallback.references,
@@ -381,7 +354,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     }
 
     // If Gemini is not configured, use local verified knowledge engine
-    const fallback = generateLocalAiraAnswer(message, role);
+    const fallback = generateLocalNexianAnswer(message, role);
     res.json({
       reply: fallback.text,
       references: fallback.references,
@@ -391,7 +364,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     console.error('Server error in /api/chat:', error);
     res.status(500).json({
       error: 'Terjadi kesalahan sistem saat memproses pertanyaan.',
-      reply: 'Maaf, terjadi kendala teknis internal. Silakan coba kembali atau konfirmasi ke Bagian Kurikulum MAN IC Bangka Tengah.',
+      reply: 'Maaf, terjadi kendala teknis internal. Silakan coba kembali atau konfirmasi ke Bagian Kurikulum/Humas MAN IC Bangka Tengah.',
     });
   }
 });
@@ -400,9 +373,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'online',
-    app: 'AIRA - MAN IC Bangka Tengah',
+    app: 'NEXIAN - MAN IC Bangka Tengah',
     geminiEnabled: Boolean(ai),
-    academicYear: '2026/2027',
+    version: '2.0.0',
   });
 });
 
@@ -414,7 +387,7 @@ async function startServer() {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`AIRA server is running on http://0.0.0.0:${PORT}`);
+      console.log(`Nexian server is running on http://0.0.0.0:${PORT}`);
     });
   } else {
     const http = await import('http');
@@ -432,11 +405,11 @@ async function startServer() {
     app.use(vite.middlewares);
 
     httpServer.listen(PORT, '0.0.0.0', () => {
-      console.log(`AIRA server is running on http://0.0.0.0:${PORT}`);
+      console.log(`Nexian server is running on http://0.0.0.0:${PORT}`);
     });
   }
 }
 
 startServer().catch((err) => {
-  console.error('Failed to start AIRA server:', err);
+  console.error('Failed to start Nexian server:', err);
 });

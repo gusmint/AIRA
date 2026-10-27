@@ -1,36 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AIRA - Kurikulum MAN IC Bangka Tengah</title>
-    <meta name="description" content="Asisten Virtual Cerdas Resmi Kurikulum MAN Insan Cendekia Bangka Tengah untuk Murid, Guru, dan Orang Tua." />
-    <meta property="og:title" content="AIRA - Kurikulum MAN IC Bangka Tengah" />
-    <meta property="og:description" content="Asisten Virtual Cerdas Resmi Kurikulum MAN Insan Cendekia Bangka Tengah untuk Murid, Guru, dan Orang Tua." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Nexian - AI Assistant MAN IC Bangka Tengah</title>
+    <meta name="description" content="NEXIAN adalah asisten virtual pintar resmi MAN Insan Cendekia Bangka Tengah untuk layanan kurikulum, SOP akademik, SNMB, dan seluruh kebutuhan sistem madrasah." />
+    <meta property="og:title" content="Nexian - AI Assistant MAN IC Bangka Tengah" />
+    <meta property="og:description" content="NEXIAN adalah asisten virtual pintar resmi MAN Insan Cendekia Bangka Tengah untuk layanan kurikulum, SOP akademik, SNMB, dan seluruh kebutuhan sistem madrasah." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/assets/aistudio/logo-IC_c662faa1.png" />
     <script>
-      // Ignore harmless Vite HMR WebSocket connection errors in sandboxed AI Studio preview iframe
-      window.addEventListener('error', function(e) {
-        if (e && (e.message?.includes('WebSocket') || e.filename?.includes('@vite/client') || (typeof e.error?.stack === 'string' && e.error.stack.includes('@vite/client')))) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
+      // Gracefully prevent HMR connection error spam in preview iframe
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && (event.reason.message || '').includes('WebSocket')) {
+          event.preventDefault();
         }
-      }, true);
-      window.addEventListener('unhandledrejection', function(e) {
-        if (e && (e.reason?.message?.includes('WebSocket') || (typeof e.reason?.stack === 'string' && e.reason.stack.includes('@vite/client')))) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
+      });
+      window.addEventListener('error', function(event) {
+        if ((event.message || '').includes('WebSocket')) {
+          event.preventDefault();
         }
-      }, true);
+      });
     </script>
   </head>
-  <body>
+  <body class="bg-slate-100 text-slate-800 antialiased overflow-hidden">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
